@@ -3,7 +3,7 @@ import time
 
 s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
-host = socket.gethostbyname("")
+host = "127.0.0.1"
 
 port = 9999
 

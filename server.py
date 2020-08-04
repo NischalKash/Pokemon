@@ -35,7 +35,7 @@ def battle(pokemon1,pokemon2,attacks,damages,health_pokemon1,health_pokemon2,ser
             else:
                 message = "You are out of using this attack!! Please choose another one!!"
                 clientsocket.send(message.encode('ascii'))
-                
+
         client_type = ""
         server_type = ""
         for i in pokemon_type:
@@ -99,7 +99,7 @@ def battle(pokemon1,pokemon2,attacks,damages,health_pokemon1,health_pokemon2,ser
 serversocket = socket.socket(
 	        socket.AF_INET, socket.SOCK_STREAM)
 
-host = socket.gethostbyname("")
+host = "127.0.0.1"
 
 port = 9999
 

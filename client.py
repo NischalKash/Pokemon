@@ -24,6 +24,21 @@ trainer1 = trainer1.split()
 trainer1 = trainer1[-3]
 print(faceoff_msg.decode('ascii'))
 
+new_string = s.recv(4096)
+new2_string = s.recv(4096)
+
+new_string = new_string.decode('ascii')
+new2_string = new2_string.decode('ascii')
+
+attacks_list = new_string.split('-')
+attacks_number_list = new2_string.split('-')
+number_attacks = {}
+
+for i in range(len(attacks_list)):
+    number_attacks[attacks_list[i]] = attacks_number_list[i]
+
+
+
 print("\n\n\n\n")
 headline_msg = s.recv(4096)
 print(headline_msg.decode('ascii'))
@@ -86,6 +101,11 @@ choosen_client = False
 count=0
 while choosen_client == False:
     message = s.recv(4096)
+    if message.decode('ascii') == "Draw":
+        print("Both the Trainers are unable to battle!! This match ends in a draw!!")
+        choosen_client = True
+        break
+
     print(message.decode('ascii'))
     # pokemon name taken in
     response = input()
@@ -100,10 +120,13 @@ while choosen_client == False:
             attack_message = attack_message.decode(('ascii'))
             attack_message = attack_message.split('-')
             status = attack_message[-1]
+            if status == "BothFainted":
+                print("Both the pokemons have fainted!!")
+                break
             if status == "Fainted":
                 print("Your Pokemon has Fainted!!")
                 count+=1
-                if count==2:
+                if count==1:
                     print("You have lost the battle to Trainer ",trainer1,"!! But heads up!! It was Close!!")
                     choosen_client = True
                 break
@@ -119,11 +142,20 @@ while choosen_client == False:
                 attack_message = attack_message.decode(('ascii'))
                 attack_message = attack_message.split('-')
                 status = attack_message[-1]
+
             print("The pokemon attacks are as follows !!")
             for i in attack_message:
                 print(i)
                 time.sleep(0.5)
-            print("Choose Your Attack!!")
-            attack = input()
-            s.send(attack.encode('ascii'))
+            validity = False
+            while validity == False:
+                print("Choose Your Attack!!")
+                attack = input()
+                s.send(attack.encode('ascii'))
+                message = s.recv(4096)
+                message = message.decode('ascii')
+                if message == "Passed":
+                    validity = True
+                else:
+                    print(message)
 s.close()

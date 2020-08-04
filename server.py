@@ -3,19 +3,40 @@ import time
 import random
 import xlrd
 
-def battle(pokemon1,pokemon2,attacks,damages,health_pokemon1,health_pokemon2):
+def battle(pokemon1,pokemon2,attacks,damages,health_pokemon1,health_pokemon2,server_attacks,client_attacks):
+
     while health_pokemon1>0 and health_pokemon2>0:
         print("The following Attacks are available with your pokemon")
         for i in attacks[pokemon1]:
             print(i)
             time.sleep(0.5)
+
         print("Choose the Attack you would like to order on the pokemon")
-        attack_pokemon1 = input()
+        validity_server = False
+        while validity_server == False:
+            attack_pokemon1 = input()
+            if server_attacks[attack_pokemon1]>0:
+                server_attacks[attack_pokemon1]-=1
+                validity_server = True
+            else:
+                print("You are out of using this attack!! Please choose another one!!")
+
         print("Please wait while the other player chooses")
         message = '-'.join(attacks[pokemon2])
         clientsocket.send(message.encode('ascii'))
-        attack_pokemon2 = clientsocket.recv(1024)
-        attack_pokemon2 = attack_pokemon2.decode('ascii')
+        validity_client = False
+        while validity_client==False:
+            attack_pokemon2 = clientsocket.recv(1024)
+            attack_pokemon2 = attack_pokemon2.decode('ascii')
+            if client_attacks[attack_pokemon2]>0:
+                client_attacks[attack_pokemon2]-=1
+                validity_client = True
+                message  = "Passed"
+                clientsocket.send(message.encode('ascii'))
+            else:
+                message = "You are out of using this attack!! Please choose another one!!"
+                clientsocket.send(message.encode('ascii'))
+
         random_variable = random.randint(0, 3)
         pokemon1_damage = damages[attack_pokemon1]
         pokemon2_damage = damages[attack_pokemon2]
@@ -38,7 +59,11 @@ def battle(pokemon1,pokemon2,attacks,damages,health_pokemon1,health_pokemon2):
 
         print("The health of ",pokemon1, " is ",health_pokemon1)
         print("The health of ", pokemon2, " is ", health_pokemon2)
-    if health_pokemon2<=0:
+
+    if health_pokemon1==0 and health_pokemon2==0:
+        message = "BothFainted"
+        clientsocket.send(message.encode('ascii'))
+    elif health_pokemon2==0:
         message = "Fainted"
         clientsocket.send(message.encode('ascii'))
     else:
@@ -94,11 +119,13 @@ superior_types = {'fire': ['grass', 'electric', 'normal', 'flying'], 'water': ['
 
 pokemon_attacks = {}
 attacks = {}
+number_attacks = {}
 loc = ("/Users/nischalkashyap/Downloads/Pokemon/attacks.xlsx")
 wb = xlrd.open_workbook(loc)
 sheet = wb.sheet_by_index(0)
 for i in range(sheet.nrows):
     attacks[sheet.cell_value(i, 0)] = sheet.cell_value(i, 1)
+    number_attacks[sheet.cell_value(i,0)] = sheet.cell_value(i,3)
     attack_type = sheet.cell_value(i,2)
     attack_type = attack_type.split('/')
     for j in attack_type:
@@ -106,6 +133,16 @@ for i in range(sheet.nrows):
             pokemon_attacks[j].append(sheet.cell_value(i,0))
         else:
             pokemon_attacks[j] = [sheet.cell_value(i,0)]
+new_string = ""
+new2_string = ""
+for i in number_attacks:
+    new_string+=i+'-'
+    new2_string+=str(number_attacks[i])+'-'
+
+clientsocket.send(new_string.encode('ascii'))
+time.sleep(1)
+clientsocket.send(new2_string.encode('ascii'))
+time.sleep(1)
 
 print("\n\n\n\n")
 headline_msg = "1. Each trainer gets to choose 5 Pokemons and will be battling with them until every pokemon is out of health \n2. Once the trainer is out of pokemons, his opponent is declared as the winner."
@@ -261,8 +298,27 @@ while len(trainer1_pokemon)>0 and len(trainer2_pokemon)>0:
     print("\n")
     print(message)
     print("\n")
-    result = battle(choose_pokemon,response_pokemon,battle_attacks,attacks,health_pokemon[choose_pokemon],health_pokemon[response_pokemon])
-    if result[0]<=0:
+    server_pokemon_attacks = {}
+    client_pokemon_attacks = {}
+    for i in battle_attacks[choose_pokemon]:
+        server_pokemon_attacks[i] = number_attacks[i]
+
+    for i in battle_attacks[response_pokemon]:
+        client_pokemon_attacks[i] = number_attacks[i]
+
+    result = battle(choose_pokemon,response_pokemon,battle_attacks,attacks,health_pokemon[choose_pokemon],health_pokemon[response_pokemon],server_pokemon_attacks,client_pokemon_attacks)
+
+    if result[0]==0 and result[1]==0:
+        print("Both the Pokemons have fainted!!")
+        trainer1_pokemon.remove(choose_pokemon)
+        trainer2_pokemon.remove(response_pokemon)
+        health_pokemon[choose_pokemon] = 0
+        health_pokemon[response_pokemon] = 0
+        choose_server = False
+        choose_client = False
+
+    elif result[0]==0:
+        print("Your pokemon has fainted")
         trainer1_pokemon.remove(choose_pokemon)
         choose_server = False
         health_pokemon[choose_pokemon] = 0
@@ -274,7 +330,11 @@ while len(trainer1_pokemon)>0 and len(trainer2_pokemon)>0:
         health_pokemon[response_pokemon] = 0
 
 time.sleep(1)
-if len(trainer1_pokemon)==0:
+if len(trainer1_pokemon)==0 and len(trainer2_pokemon)==0:
+    print("Both the Trainers are unable to battle!! This match ends in a draw!!")
+    message = "Draw"
+    clientsocket.send(message.encode('ascii'))
+elif len(trainer1_pokemon)==0:
     print("Your pokemons are unable to continue!! Trainer ",trainer2," wins the battle")
     message = "Win"
     clientsocket.send(message.encode('ascii'))

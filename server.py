@@ -3,8 +3,7 @@ import time
 import random
 import xlrd
 
-def battle(pokemon1,pokemon2,attacks,damages,health_pokemon1,health_pokemon2,server_attacks,client_attacks):
-
+def battle(pokemon1,pokemon2,attacks,damages,health_pokemon1,health_pokemon2,server_attacks,client_attacks,superior_types,pokemon_type):
     while health_pokemon1>0 and health_pokemon2>0:
         print("The following Attacks are available with your pokemon")
         for i in attacks[pokemon1]:
@@ -36,10 +35,33 @@ def battle(pokemon1,pokemon2,attacks,damages,health_pokemon1,health_pokemon2,ser
             else:
                 message = "You are out of using this attack!! Please choose another one!!"
                 clientsocket.send(message.encode('ascii'))
+                
+        client_type = ""
+        server_type = ""
+        for i in pokemon_type:
+            print(i)
+            if pokemon1 in pokemon_type[i]:
+                server_type = i
+            if pokemon2 in pokemon_type[i]:
+                client_type = i
 
-        random_variable = random.randint(0, 3)
+        advantage_client = 0
+        advantage_server = 0
+
+        if client_type in superior_types[server_type]:
+            advantage_server = 6
+        if server_type in superior_types[server_type]:
+            advantage_client = 6
+
         pokemon1_damage = damages[attack_pokemon1]
         pokemon2_damage = damages[attack_pokemon2]
+
+        advantage_randomness = random.randint(0,2)
+        if advantage_randomness == 2:
+            pokemon2_damage = pokemon2_damage+advantage_client
+            pokemon1_damage = pokemon1_damage+advantage_server
+
+        random_variable = random.randint(0, 3)
         if random_variable == 0:
             pokemon1_damage += random.randint(1,15)
         elif random_variable == 2:
@@ -306,7 +328,7 @@ while len(trainer1_pokemon)>0 and len(trainer2_pokemon)>0:
     for i in battle_attacks[response_pokemon]:
         client_pokemon_attacks[i] = number_attacks[i]
 
-    result = battle(choose_pokemon,response_pokemon,battle_attacks,attacks,health_pokemon[choose_pokemon],health_pokemon[response_pokemon],server_pokemon_attacks,client_pokemon_attacks)
+    result = battle(choose_pokemon,response_pokemon,battle_attacks,attacks,health_pokemon[choose_pokemon],health_pokemon[response_pokemon],server_pokemon_attacks,client_pokemon_attacks,superior_types,pokemon_type)
 
     if result[0]==0 and result[1]==0:
         print("Both the Pokemons have fainted!!")
